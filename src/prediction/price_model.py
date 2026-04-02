@@ -3,7 +3,7 @@ import numpy as np
 from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, Optional
 import logging
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 import warnings
 warnings.filterwarnings('ignore')
@@ -46,25 +46,18 @@ class PricePredictor:
         
         # 1. Price-based features
         df['returns'] = df['close'].pct_change()
-        df['log_returns'] = np.log1p(df['returns'].clip(lower=-0.99))  # Avoid extreme values
+        df['log_returns'] = np.log1p(df['returns'])
         
         # 2. Moving Averages (multiple timeframes)
         for period in [7, 14, 21, 50]:
             df[f'sma_{period}'] = df['close'].rolling(window=period).mean()
             df[f'ema_{period}'] = df['close'].ewm(span=period, adjust=False).mean()
         
-        # 3. MACD components (create ema_12 and ema_26 first)
-        df['ema_12'] = df['close'].ewm(span=12, adjust=False).mean()
-        df['ema_26'] = df['close'].ewm(span=26, adjust=False).mean()
-        df['macd'] = df['ema_12'] - df['ema_26']
-        df['macd_signal'] = df['macd'].ewm(span=9, adjust=False).mean()
-        df['macd_histogram'] = df['macd'] - df['macd_signal']
-        
-        # 4. Moving Average Crossovers
+        # 3. Moving Average Crossovers
         df['sma_7_21_ratio'] = df['sma_7'] / df['sma_21']
         df['ema_12_26_diff'] = df['ema_12'] - df['ema_26']
         
-        # 5. Bollinger Bands
+        # 4. Bollinger Bands
         df['bb_middle'] = df['close'].rolling(window=20).mean()
         bb_std = df['close'].rolling(window=20).std()
         df['bb_upper'] = df['bb_middle'] + (bb_std * 2)
@@ -72,13 +65,20 @@ class PricePredictor:
         df['bb_width'] = (df['bb_upper'] - df['bb_lower']) / df['bb_middle']
         df['bb_position'] = (df['close'] - df['bb_lower']) / (df['bb_upper'] - df['bb_lower'])
         
-        # 6. RSI with different periods
+        # 5. RSI with different periods
         for period in [7, 14, 21]:
             delta = df['close'].diff()
             gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
             loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
             rs = gain / loss
             df[f'rsi_{period}'] = 100 - (100 / (1 + rs))
+        
+        # 6. MACD
+        df['ema_12'] = df['close'].ewm(span=12, adjust=False).mean()
+        df['ema_26'] = df['close'].ewm(span=26, adjust=False).mean()
+        df['macd'] = df['ema_12'] - df['ema_26']
+        df['macd_signal'] = df['macd'].ewm(span=9, adjust=False).mean()
+        df['macd_histogram'] = df['macd'] - df['macd_signal']
         
         # 7. Volume indicators
         df['volume_sma'] = df['volume'].rolling(window=20).mean()
@@ -119,11 +119,8 @@ class PricePredictor:
         # 15. Additional target: next 4 periods (1 hour) direction
         df['target_4h'] = (df['close'].shift(-4) > df['close']).astype(int)
         
-        # Drop NaN values (created by rolling windows and shifts)
+        # Drop NaN values
         df = df.dropna()
-        
-        # Replace infinite values with NaN and drop
-        df = df.replace([np.inf, -np.inf], np.nan).dropna()
         
         return df
     
@@ -192,7 +189,8 @@ class PricePredictor:
             'reg_lambda': 1,
             'objective': 'binary:logistic',
             'eval_metric': 'logloss',
-            'random_state': 42
+            'random_state': 42,
+            'use_label_encoder': False
         }
         
         # Train model
