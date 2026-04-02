@@ -55,3 +55,12 @@ The **Crypto Pulse** is a complete, self-hosted cryptocurrency trading intellige
 | CLI Dashboard | ✅ | Rich library terminal interface |
 | Web Dashboard | ✅ | Streamlit interactive interface |
 
+## 🛠️ Tech Stack
+
+### Core Technologies
+```yaml
+Language: Python 3.9+
+Machine Learning: XGBoost, scikit-learn
+LLM: Ollama with Llama 3.2
+Database: SQLite
+APIs: Binance, NewsAPI, Etherscan, Solscan
