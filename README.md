@@ -7,7 +7,7 @@
 [![Ollama](https://img.shields.io/badge/Ollama-Llama%203.2-orange.svg)](https://ollama.ai)
 [![XGBoost](https://img.shields.io/badge/XGBoost-ML-red.svg)](https://xgboost.ai)
 
-> **Educational Purpose Only** - This is a simulation tool. NO real money trading.
+
 
 ## 📋 Table of Contents
 - [Overview](#overview)
